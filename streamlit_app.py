@@ -35,6 +35,23 @@ if user_password == user_credentials[user_identity]:
         user_role = user_identity
         user_name = user_identity
 
+    # --- قسم التنبيهات العامة (تظهر لجميع المستخدمين) ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🔔 تنبيهات النظام الحية")
+    try:
+        # جلب آخر 5 تحديثات تمت على الطلبات
+        updates_res = supabase.table("cooler_orders").select("customer_name, status, updated_at").order('updated_at', desc=True).limit(5).execute()
+        if updates_res.data:
+            for up in updates_res.data:
+                with st.sidebar.container(border=True):
+                    st.caption(f"⏱️ {up['updated_at'][:16]}")
+                    st.write(f"🏢 **{up['customer_name']}**")
+                    st.info(f"📍 {up['status']}")
+        else:
+            st.sidebar.write("لا توجد نشاطات حالياً.")
+    except:
+        st.sidebar.write("بانتظار تحديث البيانات...")
+
     st.title(f"🥤 لوحة تحكم: {user_identity}")
     st.markdown("---")
 
@@ -129,7 +146,7 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- سائق البرادات (التصليح هنا) ---
+                            # --- سائق البرادات ---
                             if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
                                 st.markdown("---")
                                 dr_note = st.text_input("ملاحظة السائق (سبب الرفض إن وجد):", key=f"drn_{order['id']}")
@@ -142,5 +159,15 @@ if user_password == user_credentials[user_identity]:
                                     st.rerun()
         else:
             st.write("لا توجد بيانات.")
+
+    # --- تذييل الصفحة (Footer) ---
+    st.markdown("---")
+    st.markdown(
+        "<div style='text-align: center; color: #555; padding: 20px;'>"
+        "Designed and Programmed by Coordination Officer: <b>Mohammed Ali Muheel</b>"
+        "</div>", 
+        unsafe_allow_html=True
+    )
+
 else:
     st.sidebar.info("يرجى إدخال الرمز السري.")
