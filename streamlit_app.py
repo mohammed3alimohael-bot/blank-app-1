@@ -122,3 +122,13 @@ if user_password == user_credentials[user_identity]:
     st.markdown("<div style='text-align: center; color: #888;'>Designed and Programmed by: <b>Mohammed Ali Muheel</b></div>", unsafe_allow_html=True)
 else:
     st.sidebar.info("يرجى إدخال الرمز السري.")
+
+# كود إخفاء العناصر العلوية (Header)
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
