@@ -4,44 +4,45 @@ from supabase import create_client
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
-# --- كود تنظيف الواجهة الشامل وإضافة التوقيع ---
+# --- كود تنظيف الواجهة الشامل (نسخة الإخفاء القصوى) ---
 st.markdown("""
     <style>
-    /* إخفاء القائمة العلوية وشريط الأدوات بالكامل */
+    /* 1. إخفاء القائمة العلوية وأزرار التطوير بالكامل */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* إخفاء زر التبديل (التاج الأحمر) وأي أيقونات متعلقة بـ Streamlit */
+    /* 2. إخفاء شريط الـ Deploy والتاج الأحمر (Hosted with Streamlit) */
     .stDeployButton {display:none !important;}
     .stAppDeployButton {display:none !important;}
-    div[data-testid="stStatusWidget"] {display:none !important;}
     footer {display:none !important;}
     
-    /* إخفاء شعار Streamlit وأيقونة الكرة الأرضية في الأسفل */
-    #viewerBadge {display:none !important;}
+    /* 3. إخفاء العلامة المائية في أسفل يمين الصفحة (مهم جداً للصور التي أرسلتها) */
+    div[data-testid="stStatusWidget"] {display:none !important;}
     .viewerBadge_container__177v5 {display:none !important;}
+    .viewerBadge_link__177v5 {display:none !important;}
+    #viewerBadge {display:none !important;}
     
-    /* تنسيق التوقيع الخاص بك ليظهر بوضوح واحترافية */
+    /* 4. تنسيق توقيعك الشخصي بالإنكليزية ليكون واضحاً وثابتاً */
     .footer-text {
         position: fixed;
-        bottom: 15px;
+        bottom: 20px;
         right: 20px;
-        font-size: 13px;
+        font-size: 14px;
         color: #FFFFFF;
-        font-family: 'Arial';
+        font-family: 'Arial', sans-serif;
         z-index: 999999;
-        background-color: rgba(0, 0, 0, 0.7);
-        padding: 6px 12px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        pointer-events: none; /* حتى لا يتداخل مع الأزرار */
+        background-color: rgba(0, 0, 0, 0.8);
+        padding: 8px 15px;
+        border-radius: 10px;
+        border: 1px solid #555;
+        font-weight: bold;
     }
     </style>
     <div class="footer-text">Designed and Programmed by Coordination Manager: Mohammed Ali Muheel</div>
 """, unsafe_allow_html=True)
 
-# الربط بقاعدة البيانات
+# الربط بقاعدة البيانات (ملاحظة: تأكد من صحة الـ Key دائماً)
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 supabase = create_client(url, key)
@@ -137,7 +138,6 @@ if user_password == user_credentials[user_identity]:
                             if order.get('manager_notes'): st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
                             if order.get('driver_notes'): st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
 
-                            # --- مدير التنمية ---
                             if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
                                 n = st.text_input("ملاحظات:", key=f"n_{order['id']}")
                                 c1, c2 = st.columns(2)
@@ -148,7 +148,6 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": n}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- مسؤول المخزن ---
                             if user_role == "مسؤول المخزن" and "الموافقة" in status:
                                 ser = st.text_input("رقم البراد:", key=f"s_{order['id']}")
                                 c1, c2 = st.columns(2)
@@ -160,13 +159,11 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن", "cooler_serial": "غير متوفر"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- قسم التنسيق (محمد علي) ---
                             if user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in status:
                                 if st.button("📝 تم إنشاء العقد", key=f"c_{order['id']}"):
                                     supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- سائق البرادات ---
                             if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
                                 st.markdown("---")
                                 dr_note = st.text_input("ملاحظة السائق (سبب الرفض إن وجد):", key=f"drn_{order['id']}")
