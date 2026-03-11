@@ -171,7 +171,43 @@ if user_password == user_credentials[user_identity]:
                                     st.rerun()
         else:
             st.write("لا توجد بيانات.")
+# --- إضافة ميزة تصدير الطلبات إلى Excel ---
+    st.markdown("---")
+    st.subheader("📥 تصدير بيانات اليوم")
 
+    if all_orders:
+        import pandas as pd
+        from datetime import datetime
+        import io
+
+        # تحويل البيانات إلى Pandas DataFrame لسهولة التعامل
+        df = pd.DataFrame(all_orders)
+
+        # تحويل عمود التاريخ ليكون بصيغة تاريخ فقط (بدون وقت) للمقارنة
+        df['created_date'] = pd.to_datetime(df['created_at']).dt.date
+        today = datetime.now().date()
+
+        # فلترة طلبات اليوم فقط
+        df_today = df[df['created_date'] == today]
+
+        if not df_today.empty:
+            # إنشاء ملف إكسل في الذاكرة
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                # حذف الأعمدة غير الضرورية قبل التصدير (مثل الروابط أو الآيدي)
+                columns_to_export = ['customer_name', 'full_name', 'route_name', 'delegate_name', 'address', 'cooler_type', 'status', 'cooler_serial', 'supervisor_name', 'created_at']
+                df_today[columns_to_export].to_excel(writer, index=False, sheet_name='طلبات اليوم')
+            
+            # زر التحميل
+            st.download_button(
+                label="تحميل طلبات اليوم كـ Excel 📥",
+                data=buffer.getvalue(),
+                file_name=f"طلبات_البرادات_{today}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("لا توجد طلبات مسجلة بتاريخ اليوم لتصديرها.")
+            
     # --- تذييل الصفحة (Footer) ---
     st.markdown("---")
     st.markdown(
