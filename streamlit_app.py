@@ -5,7 +5,7 @@ from supabase import create_client
 st.set_page_config(page_title="نظام بيبسي بغداد", layout="wide")
 
 # الربط بقاعدة البيانات
-url = "xvixqbcqunrvbvqvlplz.supabase.co"
+url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 supabase = create_client(url, key)
 
