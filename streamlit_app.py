@@ -4,6 +4,28 @@ from supabase import create_client
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
+# --- كود تنظيف الواجهة وإضافة التوقيع ---
+st.markdown("""
+    <style>
+    /* إخفاء أزرار المشاركة و GitHub في الأعلى */
+    #MainMenu, header, footer {visibility: hidden;}
+    .stAppDeployButton {display:none !important;}
+    [data-testid="stStatusWidget"] {display:none !important;}
+    
+    /* تنسيق التوقيع في أسفل الصفحة */
+    .footer-text {
+        position: fixed;
+        bottom: 10px;
+        left: 20px;
+        font-size: 14px;
+        color: #888;
+        font-family: 'Arial';
+        direction: rtl;
+    }
+    </style>
+    <div class="footer-text">تم التصميم والبرمجة من قبل مسؤول التنسيق محمد علي محيل</div>
+""", unsafe_allow_html=True)
+
 # الربط بقاعدة البيانات
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
@@ -129,7 +151,7 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- سائق البرادات (التصليح هنا) ---
+                            # --- سائق البرادات ---
                             if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
                                 st.markdown("---")
                                 dr_note = st.text_input("ملاحظة السائق (سبب الرفض إن وجد):", key=f"drn_{order['id']}")
