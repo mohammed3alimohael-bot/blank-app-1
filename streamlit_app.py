@@ -21,17 +21,18 @@ if user_role == "مشرف":
 st.title(f"🥤 لوحة تحكم: {user_role}")
 st.markdown("---")
 
-# --- ميزة الإشعارات العامة (تظهر للكل) ---
+# --- ميزة الإشعارات العامة ---
 def show_notifications():
     try:
-        # جلب آخر 3 تحديثات من السائق فقط
-        res = supabase.table("cooler_orders").select("*").in_("delivery_status", ["تم التوصيل بنجاح", "رفض الاستلام"]).order('created_at', desc=True).limit(3).execute()
+        # جلب آخر التحديثات من المدير والسائق
+        res = supabase.table("cooler_orders").select("*").order('updated_at', desc=True).limit(3).execute()
         updates = res.data
         if updates:
-            st.sidebar.markdown("### 🔔 آخر تحديثات السائقين")
+            st.sidebar.markdown("### 🔔 آخر التحديثات")
             for up in updates:
-                icon = "✅" if up['delivery_status'] == "تم التوصيل بنجاح" else "❌"
-                st.sidebar.info(f"{icon} {up['customer_name']}\n\nالحالة: {up['delivery_status']}\n\nالسبب: {up.get('driver_notes') or 'لا يوجد'}")
+                if "مرفوض" in up['status'] or "الموافقة" in up['status']:
+                    msg = f"مدير التنمية: {up.get('manager_notes') or 'بدون ملاحظات'}"
+                    st.sidebar.warning(f"📌 {up['customer_name']}\n\n{msg}")
     except:
         pass
 
@@ -67,12 +68,11 @@ if user_role == "مشرف":
                         "cooler_type": o['cooler_type'], "supervisor_name": user_name, "status": "بانتظار موافقة المدير"
                     }).execute()
                 st.session_state.temp_orders = []
-                st.success("تم الإرسال!")
                 st.rerun()
 
 # --- واجهة العرض والمتابعة ---
 with col2:
-    st.header("📋 سجل الحركة والتجهيز")
+    st.header("📋 سجل حركة الطلبات")
     res = supabase.table("cooler_orders").select("*").order('created_at', desc=True).execute()
     orders = res.data
 
@@ -84,20 +84,27 @@ with col2:
             if order.get('delivery_status') == "تم التوصيل بنجاح": icon = "✅"
             if order.get('delivery_status') == "رفض الاستلام": icon = "❌"
             
-            with st.expander(f"{icon} {order['customer_name']} | مسار {order['route_name']} | {status}"):
+            with st.expander(f"{icon} {order['customer_name']} | {status}"):
                 st.write(f"👤 **المشرف:** {order['supervisor_name']} | **المندوب:** {order.get('delegate_name')}")
                 st.write(f"🔢 **رقم البراد:** {order.get('cooler_serial') or '---'}")
+                
+                # عرض ملاحظات المدير للمشرفين
+                if order.get('manager_notes'):
+                    st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
+                
+                # عرض ملاحظات السائق
                 if order.get('driver_notes'):
                     st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
                 
                 # --- صلاحيات مدير التنمية ---
                 if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
+                    m_notes = st.text_input("اكتب سبب الرفض أو ملاحظات الموافقة:", key=f"mnot_{order['id']}")
                     c1, c2 = st.columns(2)
                     if c1.button("✅ موافقة", key=f"ap_{order['id']}"):
-                        supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن"}).eq("id", order['id']).execute()
+                        supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن", "manager_notes": m_notes}).eq("id", order['id']).execute()
                         st.rerun()
                     if c2.button("❌ رفض", key=f"rej_{order['id']}"):
-                        supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير"}).eq("id", order['id']).execute()
+                        supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": m_notes}).eq("id", order['id']).execute()
                         st.rerun()
 
                 # --- صلاحيات مسؤول المخزن ---
@@ -116,12 +123,11 @@ with col2:
                 # --- صلاحيات السائق ---
                 if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
                     d1, d2 = st.columns(2)
-                    if d1.button("✅ تم التوصيل بنجاح", key=f"ok_{order['id']}"):
+                    if d1.button("✅ تم التوصيل", key=f"ok_{order['id']}"):
                         supabase.table("cooler_orders").update({"delivery_status": "تم التوصيل بنجاح", "status": "مكتمل"}).eq("id", order['id']).execute()
                         st.rerun()
                     
-                    st.write("---")
-                    reason = st.text_input("سبب الرفض (إذا وجد):", key=f"re_{order['id']}")
-                    if st.button("❌ رفض الاستلام", key=f"fail_{order['id']}"):
+                    reason = st.text_input("سبب رفض العميل:", key=f"re_{order['id']}")
+                    if d2.button("❌ رفض الاستلام", key=f"fail_{order['id']}"):
                         supabase.table("cooler_orders").update({"delivery_status": "رفض الاستلام", "driver_notes": reason, "status": "ملغي/مرفوض"}).eq("id", order['id']).execute()
                         st.rerun()
