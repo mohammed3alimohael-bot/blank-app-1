@@ -35,23 +35,35 @@ if user_password == user_credentials[user_identity]:
         user_role = user_identity
         user_name = user_identity
 
-    # --- قسم التنبيهات العامة (تظهر لجميع المستخدمين) ---
+# --- قسم التنبيهات العامة المحدث ---
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔔 تنبيهات النظام الحية")
+    
     try:
-        # جلب آخر 5 تحديثات تمت على الطلبات
-        updates_res = supabase.table("cooler_orders").select("customer_name, status, updated_at").order('updated_at', desc=True).limit(5).execute()
-        if updates_res.data:
+        # قمنا بتغيير الترتيب ليعتمد على created_at بدلاً من updated_at لضمان ظهور البيانات
+        updates_res = supabase.table("cooler_orders").select("customer_name, status, created_at").order('created_at', desc=True).limit(5).execute()
+        
+        if updates_res.data and len(updates_res.data) > 0:
             for up in updates_res.data:
                 with st.sidebar.container(border=True):
-                    st.caption(f"⏱️ {up['updated_at'][:16]}")
+                    # عرض الوقت بشكل أرتب
+                    time_str = up['created_at'].replace('T', ' ')[:16]
+                    st.caption(f"⏱️ {time_str}")
                     st.write(f"🏢 **{up['customer_name']}**")
-                    st.info(f"📍 {up['status']}")
+                    
+                    # تلوين الحالة لتمييزها
+                    current_status = up['status']
+                    if "بانتظار" in current_status:
+                        st.warning(f"📍 {current_status}")
+                    elif "تمت" in current_status or "مكتمل" in current_status:
+                        st.success(f"📍 {current_status}")
+                    else:
+                        st.info(f"📍 {current_status}")
         else:
-            st.sidebar.write("لا توجد نشاطات حالياً.")
-    except:
-        st.sidebar.write("بانتظار تحديث البيانات...")
-
+            st.sidebar.write("📭 لا توجد طلبات مسجلة حتى الآن.")
+    except Exception as e:
+        # عرض الخطأ الحقيقي للمبرمج (لك) حتى نعرف إذا كان هناك نقص بالأعمدة
+        st.sidebar.error(f"خطأ في جلب البيانات: {str(e)}")
     st.title(f"🥤 لوحة تحكم: {user_identity}")
     st.markdown("---")
 
