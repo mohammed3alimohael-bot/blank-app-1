@@ -46,6 +46,10 @@ user_creds = {
 
 # --- نظام تسجيل الدخول ---
 st.sidebar.title("🔐 تسجيل الدخول")
+# أضف هذا السطر بعد تعريف القائمة الجانبية مباشرة
+if u_pass != user_creds[u_identity]:
+    st.info("👈 يرجى فتح القائمة الجانبية وتسجيل الدخول للبدء")
+
 u_identity = st.sidebar.selectbox("اختر اسمك:", list(user_creds.keys()))
 u_pass = st.sidebar.text_input("الرمز السري:", type="password")
 
