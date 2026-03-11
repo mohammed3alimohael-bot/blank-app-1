@@ -2,7 +2,7 @@ import streamlit as st
 from supabase import create_client
 
 # إعدادات الصفحة
-st.set_page_config(page_title="منظومة بيبسي - إدارة المخزن والتوزيع", layout="wide")
+st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
 # الربط بقاعدة البيانات
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
@@ -92,6 +92,7 @@ if user_password == user_credentials[user_identity]:
                         if "الموافقة" in status: icon = "🔵"
                         if "المخزن" in status and "غير متوفر" in status: icon = "🟠"
                         if order.get('delivery_status') == "تم التوصيل بنجاح": icon = "✅"
+                        if order.get('delivery_status') == "رفض الاستلام": icon = "❌"
                         
                         with st.expander(f"{icon} {order['customer_name']} | {order['cooler_type']} | {status}"):
                             st.write(f"📝 **المندوب:** {order.get('delegate_name')} | **الاسم:** {order.get('full_name')}")
@@ -99,9 +100,9 @@ if user_password == user_credentials[user_identity]:
                             if order.get('manager_notes'): st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
                             if order.get('driver_notes'): st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
 
-                            # --- صلاحيات مدير التنمية ---
+                            # --- مدير التنمية ---
                             if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
-                                n = st.text_input("ملاحظات المدير:", key=f"n_{order['id']}")
+                                n = st.text_input("ملاحظات:", key=f"n_{order['id']}")
                                 c1, c2 = st.columns(2)
                                 if c1.button("✅ موافقة", key=f"a_{order['id']}"):
                                     supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن", "manager_notes": n}).eq("id", order['id']).execute()
@@ -110,35 +111,36 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": n}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- صلاحيات مسؤول المخزن (التعديل الجديد) ---
+                            # --- مسؤول المخزن ---
                             if user_role == "مسؤول المخزن" and "الموافقة" in status:
-                                st.markdown("---")
-                                ser = st.text_input("أدخل رقم البراد (في حال التوفر):", key=f"s_{order['id']}")
+                                ser = st.text_input("رقم البراد:", key=f"s_{order['id']}")
                                 c1, c2 = st.columns(2)
-                                if c1.button("✅ حفظ الرقم وتجهيز", key=f"bs_{order['id']}"):
+                                if c1.button("✅ حفظ الرقم", key=f"bs_{order['id']}"):
                                     if ser:
                                         supabase.table("cooler_orders").update({"cooler_serial": ser, "status": "تم التجهيز - بانتظار العقد"}).eq("id", order['id']).execute()
                                         st.rerun()
-                                    else:
-                                        st.error("يرجى إدخال رقم البراد أولاً")
-                                
-                                if c2.button("❌ غير متوفر في المخزن", key=f"out_{order['id']}"):
-                                    supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن - يرجى تغيير النوع", "cooler_serial": "غير متوفر"}).eq("id", order['id']).execute()
+                                if c2.button("❌ غير متوفر", key=f"out_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن", "cooler_serial": "غير متوفر"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- صلاحيات المنسق ---
+                            # --- قسم التنسيق (محمد علي) ---
                             if user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in status:
                                 if st.button("📝 تم إنشاء العقد", key=f"c_{order['id']}"):
                                     supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- صلاحيات السائق ---
+                            # --- سائق البرادات (التصليح هنا) ---
                             if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
-                                if st.button("✅ تم التوصيل", key=f"d_{order['id']}"):
+                                st.markdown("---")
+                                dr_note = st.text_input("ملاحظة السائق (سبب الرفض إن وجد):", key=f"drn_{order['id']}")
+                                col_a, col_b = st.columns(2)
+                                if col_a.button("✅ تم التوصيل بنجاح", key=f"ok_{order['id']}"):
                                     supabase.table("cooler_orders").update({"delivery_status": "تم التوصيل بنجاح", "status": "مكتمل"}).eq("id", order['id']).execute()
                                     st.rerun()
+                                if col_b.button("❌ رفض الاستلام", key=f"fail_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"delivery_status": "رفض الاستلام", "driver_notes": dr_note, "status": "ملغي/مرفوض"}).eq("id", order['id']).execute()
+                                    st.rerun()
         else:
-            st.write("لا توجد بيانات حالياً.")
+            st.write("لا توجد بيانات.")
 else:
-    if user_password: st.sidebar.error("الرمز السري غير صحيح!")
-    else: st.sidebar.info("يرجى إدخال الرمز السري للدخول.")
+    st.sidebar.info("يرجى إدخال الرمز السري.")
