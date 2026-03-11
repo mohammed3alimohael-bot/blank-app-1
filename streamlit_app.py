@@ -5,19 +5,18 @@ import pandas as pd
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - فرع بغداد", layout="wide")
 
-# الرابط والمفتاح (تأكد من نسخهم بدقة بدون مسافات)
+# الرابط والمفتاح
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 
-# محاولة الربط مع حماية الواجهة من الانهيار
 try:
     supabase = create_client(url, key)
     db_status = True
 except:
     db_status = False
-    st.error("⚠️ هناك مشكلة في الاتصال بقاعدة البيانات، تأكد من الرابط والمفتاح.")
+    st.error("⚠️ خطأ في الاتصال بقاعدة البيانات.")
 
-# --- قاعدة بيانات الرموز السرية ---
+# رموز الدخول
 user_credentials = {
     "مشعل رسول": "1001", "محمد أركن": "1002", "حسين علي": "1003",
     "مدير التنمية": "2001", "مسؤول المخزن": "3001",
@@ -34,78 +33,83 @@ if user_password == user_credentials[user_identity]:
     st.title(f"🥤 لوحة تحكم: {user_identity}")
     st.markdown("---")
 
-    col1, col2 = st.columns([1.3, 2.5])
+    col1, col2 = st.columns([1.5, 2.5])
 
-    # --- واجهة المشرف (إضافة طلبات بكل الحقول) ---
+    # --- واجهة المشرف (إرسال دفعة واحدة) ---
     if user_role == "مشرف":
         with col1:
-            st.header("➕ تقديم طلب جديد")
-            # الحقول اللي كانت مختفية رجعت هنا بالكامل
-            route = st.selectbox("📍 اختر المسار (Route):", ["1", "2", "3", "4", "5", "6"])
+            st.header("➕ تجهيز قائمة الطلبات")
+            
+            # معلومات المسار والمندوب ثابتة لكل الدفعة
+            route = st.selectbox("📍 المسار:", ["1", "2", "3", "4", "5", "6"])
             delegate = st.text_input("👤 اسم المندوب")
             
+            # إنشاء قائمة مؤقتة في المتصفح
+            if 'basket' not in st.session_state:
+                st.session_state.basket = []
+
             with st.container(border=True):
-                trade_name = st.text_input("🏢 الاسم التجاري (المحل)")
-                full_name = st.text_input("📝 الاسم الثلاثي للزبون")
-                address = st.text_input("🗺️ العنوان بالتفصيل")
-                details = st.text_area("ℹ️ ملاحظات إضافية")
-                c_type = st.selectbox("نوع البراد المطلوب", [
-                    "دبل بيبسي", "سنكل بيبسي", "سنكل يومي", "سنكل اكوافينا", 
-                    "ثلاثي بيبسي", "سلم بيبسي", "ستاند 50", "ستاند 75", 
-                    "ستاند 90", "ستاند 110", "ستاند 120"
-                ])
+                st.subheader("إضافة زبون للقائمة")
+                t_name = st.text_input("🏢 الاسم التجاري")
+                f_name = st.text_input("📝 الاسم الثلاثي")
+                addr = st.text_input("🗺️ العنوان")
+                c_type = st.selectbox("نوع البراد", ["دبل بيبسي", "سنكل بيبسي", "سلم بيبسي", "ستاند 90", "ثلاثي"])
                 
-                if st.button("إرسال الطلب للمدير 🚀"):
-                    if trade_name and db_status:
-                        supabase.table("cooler_orders").insert({
-                            "customer_name": trade_name, 
-                            "full_name": full_name, 
-                            "route_name": route,
-                            "delegate_name": delegate, 
-                            "address": address, 
-                            "details": details,
-                            "cooler_type": c_type, 
-                            "supervisor_name": user_identity, 
-                            "status": "بانتظار موافقة المدير"
-                        }).execute()
-                        st.success("تم إرسال الطلب بنجاح!")
+                if st.button("إضافة إلى السلة 📥"):
+                    if t_name:
+                        st.session_state.basket.append({
+                            "customer_name": t_name, "full_name": f_name, 
+                            "address": addr, "cooler_type": c_type
+                        })
                         st.rerun()
-                    elif not trade_name:
-                        st.warning("يرجى كتابة اسم المحل أولاً.")
+
+            # عرض السلة المؤقتة قبل الإرسال
+            if st.session_state.basket:
+                st.markdown("### 🛒 الطلبات الجاهزة للإرسال")
+                for i, item in enumerate(st.session_state.basket):
+                    st.text(f"{i+1}- {item['customer_name']} ({item['cooler_type']})")
+                
+                if st.button("🚀 إرسال كافة الطلبات للمدير الآن"):
+                    for o in st.session_state.basket:
+                        supabase.table("cooler_orders").insert({
+                            "customer_name": o['customer_name'], "full_name": o['full_name'],
+                            "route_name": route, "delegate_name": delegate,
+                            "address": o['address'], "cooler_type": o['cooler_type'],
+                            "supervisor_name": user_identity, "status": "بانتظار موافقة المدير"
+                        }).execute()
+                    st.session_state.basket = [] # تفريغ السلة بعد الإرسال
+                    st.success("تم إرسال الدفعة بالكامل!")
+                    st.rerun()
+                
+                if st.button("🗑️ تفريغ السلة"):
+                    st.session_state.basket = []
+                    st.rerun()
 
     # --- واجهة العرض والطباعة ---
     with col2:
         st.header("📋 سجل الحركة والطباعة")
-        
         if db_status:
             res = supabase.table("cooler_orders").select("*").order('created_at', desc=True).execute()
             all_data = res.data
             
             if all_data:
-                # زر "عرض جدول الطباعة" اللي اتفقنا عليه
-                if st.button("🖨️ تجهيز الجدول للطباعة"):
+                if st.button("🖨️ تجهيز جدول الطباعة"):
                     df = pd.DataFrame(all_data)
-                    print_df = df[['customer_name', 'route_name', 'cooler_type', 'supervisor_name', 'status']]
-                    print_df.columns = ['المحل', 'المسار', 'النوع', 'المشرف', 'الحالة']
-                    st.table(print_df)
-                    st.info("💡 اضغط الآن (Ctrl + P) لطباعة هذا الجدول.")
+                    st.table(df[['customer_name', 'cooler_type', 'supervisor_name', 'status']])
+                    st.info("💡 اضغط (Ctrl + P) للطباعة")
 
-                # نظام التبويبات (Tabs) للمشرفين
-                supervisors = ["مشعل رسول", "محمد أركن", "حسين علي"]
-                tabs = st.tabs(supervisors)
-                for i, sup in enumerate(supervisors):
+                tabs = st.tabs(["مشعل رسول", "محمد أركن", "حسين علي"])
+                for i, sup in enumerate(["مشعل رسول", "محمد أركن", "حسين علي"]):
                     with tabs[i]:
-                        sup_orders = [o for o in all_data if o.get('supervisor_name') == sup]
-                        for order in sup_orders:
+                        orders = [o for o in all_data if o.get('supervisor_name') == sup]
+                        for order in orders:
                             with st.expander(f"📦 {order['customer_name']} | {order['status']}"):
-                                st.write(f"🏠 **العنوان:** {order.get('address')}")
-                                st.write(f"📝 **صاحب الطلب:** {order.get('full_name')}")
-                                # أزرار الإدارة (مدير، مخزن، الخ)
+                                st.write(f"🏠 العنوان: {order.get('address')}")
                                 if user_role == "مدير التنمية" and "بانتظار موافقة" in order['status']:
-                                    if st.button("✅ موافقة", key=f"app_{order['id']}"):
+                                    if st.button("✅ موافقة", key=order['id']):
                                         supabase.table("cooler_orders").update({"status": "تمت الموافقة"}).eq("id", order['id']).execute()
                                         st.rerun()
             else:
-                st.write("لا توجد طلبات حالياً.")
+                st.write("لا توجد بيانات.")
 else:
-    st.info("يرجى إدخال الرمز السري للدخول.")
+    st.info("يرجى إدخال الرمز السري.")
