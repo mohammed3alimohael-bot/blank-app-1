@@ -6,7 +6,7 @@ st.set_page_config(page_title="نظام بيبسي بغداد", layout="wide")
 
 # الربط بقاعدة البيانات - المفاتيح الخاصة بك
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
-key = "sb_publishable_MjA3YzRhMTItMDY2Ny00ZDEzLWI1MDctNmU3MTBiYjQwZThm"
+key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 supabase = create_client(url, key)
 
 st.title("🚛 نظام تنسيق البرادات - شركة بيبسي")
