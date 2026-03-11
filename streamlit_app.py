@@ -4,26 +4,38 @@ from supabase import create_client
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
-# --- كود تنظيف الواجهة وإضافة التوقيع بالإنكليزية ---
+# --- كود تنظيف الواجهة الشامل وإضافة التوقيع ---
 st.markdown("""
     <style>
-    /* إخفاء أزرار المشاركة و GitHub في الأعلى */
-    #MainMenu, header, footer {visibility: hidden;}
-    .stAppDeployButton {display:none !important;}
-    [data-testid="stStatusWidget"] {display:none !important;}
+    /* إخفاء القائمة العلوية وشريط الأدوات بالكامل */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
     
-    /* تنسيق التوقيع في أسفل الصفحة بالإنكليزية */
+    /* إخفاء زر التبديل (التاج الأحمر) وأي أيقونات متعلقة بـ Streamlit */
+    .stDeployButton {display:none !important;}
+    .stAppDeployButton {display:none !important;}
+    div[data-testid="stStatusWidget"] {display:none !important;}
+    footer {display:none !important;}
+    
+    /* إخفاء شعار Streamlit وأيقونة الكرة الأرضية في الأسفل */
+    #viewerBadge {display:none !important;}
+    .viewerBadge_container__177v5 {display:none !important;}
+    
+    /* تنسيق التوقيع الخاص بك ليظهر بوضوح واحترافية */
     .footer-text {
         position: fixed;
-        bottom: 10px;
+        bottom: 15px;
         right: 20px;
-        font-size: 14px;
-        color: #FFFFFF; /* لون أبيض واضح */
+        font-size: 13px;
+        color: #FFFFFF;
         font-family: 'Arial';
-        z-index: 999;
-        background-color: rgba(0,0,0,0.5); /* خلفية بسيطة لضمان الوضوح */
-        padding: 5px 10px;
-        border-radius: 5px;
+        z-index: 999999;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #444;
+        pointer-events: none; /* حتى لا يتداخل مع الأزرار */
     }
     </style>
     <div class="footer-text">Designed and Programmed by Coordination Manager: Mohammed Ali Muheel</div>
