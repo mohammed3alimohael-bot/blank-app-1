@@ -2,7 +2,7 @@ import streamlit as st
 from supabase import create_client
 
 # إعدادات الصفحة
-st.set_page_config(page_title="منظومة بيبسي المتكاملة", layout="wide")
+st.set_page_config(page_title="منظومة بيبسي - فرز طلبات المشرفين", layout="wide")
 
 # الربط بقاعدة البيانات
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
@@ -14,33 +14,17 @@ st.sidebar.title("🔑 بوابة الدخول")
 user_role = st.sidebar.selectbox("اختر الصلاحية:", 
     ["مشرف", "مدير التنمية", "مسؤول المخزن", "قسم التنسيق (محمد علي)", "سائق البرادات"])
 
+supervisors_list = ["مشعل رسول", "محمد أركن", "حسين علي"]
 user_name = ""
 if user_role == "مشرف":
-    user_name = st.sidebar.selectbox("اسم المشرف:", ["مشعل رسول", "محمد أركن", "حسين علي"])
+    user_name = st.sidebar.selectbox("اسم المشرف:", supervisors_list)
 
 st.title(f"🥤 لوحة تحكم: {user_role}")
 st.markdown("---")
 
-# --- ميزة الإشعارات العامة ---
-def show_notifications():
-    try:
-        # جلب آخر التحديثات من المدير والسائق
-        res = supabase.table("cooler_orders").select("*").order('updated_at', desc=True).limit(3).execute()
-        updates = res.data
-        if updates:
-            st.sidebar.markdown("### 🔔 آخر التحديثات")
-            for up in updates:
-                if "مرفوض" in up['status'] or "الموافقة" in up['status']:
-                    msg = f"مدير التنمية: {up.get('manager_notes') or 'بدون ملاحظات'}"
-                    st.sidebar.warning(f"📌 {up['customer_name']}\n\n{msg}")
-    except:
-        pass
+col1, col2 = st.columns([1.3, 2.5])
 
-show_notifications()
-
-col1, col2 = st.columns([1.3, 2])
-
-# --- واجهة المشرف ---
+# --- واجهة المشرف (إضافة طلبات) ---
 if user_role == "مشرف":
     with col1:
         st.header("➕ تقديم طلبات جديدة")
@@ -70,64 +54,66 @@ if user_role == "مشرف":
                 st.session_state.temp_orders = []
                 st.rerun()
 
-# --- واجهة العرض والمتابعة ---
+# --- واجهة العرض والمتابعة (مرتبة حسب المشرف) ---
 with col2:
-    st.header("📋 سجل حركة الطلبات")
+    st.header("📋 سجل حركة الطلبات حسب المشرف")
+    
+    # جلب البيانات
     res = supabase.table("cooler_orders").select("*").order('created_at', desc=True).execute()
-    orders = res.data
+    all_orders = res.data
 
-    if orders:
-        for order in orders:
-            status = order['status']
-            icon = "🟡"
-            if "الموافقة" in status: icon = "🔵"
-            if order.get('delivery_status') == "تم التوصيل بنجاح": icon = "✅"
-            if order.get('delivery_status') == "رفض الاستلام": icon = "❌"
-            
-            with st.expander(f"{icon} {order['customer_name']} | {status}"):
-                st.write(f"👤 **المشرف:** {order['supervisor_name']} | **المندوب:** {order.get('delegate_name')}")
-                st.write(f"🔢 **رقم البراد:** {order.get('cooler_serial') or '---'}")
+    if all_orders:
+        # إنشاء تبويبات (Tabs) لكل مشرف
+        tabs = st.tabs(supervisors_list)
+        
+        for i, sup_name in enumerate(supervisors_list):
+            with tabs[i]:
+                # تصفية الطلبات لهذا المشرف فقط
+                sup_orders = [o for o in all_orders if o.get('supervisor_name') == sup_name]
                 
-                # عرض ملاحظات المدير للمشرفين
-                if order.get('manager_notes'):
-                    st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
-                
-                # عرض ملاحظات السائق
-                if order.get('driver_notes'):
-                    st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
-                
-                # --- صلاحيات مدير التنمية ---
-                if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
-                    m_notes = st.text_input("اكتب سبب الرفض أو ملاحظات الموافقة:", key=f"mnot_{order['id']}")
-                    c1, c2 = st.columns(2)
-                    if c1.button("✅ موافقة", key=f"ap_{order['id']}"):
-                        supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن", "manager_notes": m_notes}).eq("id", order['id']).execute()
-                        st.rerun()
-                    if c2.button("❌ رفض", key=f"rej_{order['id']}"):
-                        supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": m_notes}).eq("id", order['id']).execute()
-                        st.rerun()
+                if not sup_orders:
+                    st.write(f"لا توجد طلبات حالية للمشرف {sup_name}")
+                else:
+                    for order in sup_orders:
+                        status = order['status']
+                        icon = "🟡"
+                        if "الموافقة" in status: icon = "🔵"
+                        if order.get('delivery_status') == "تم التوصيل بنجاح": icon = "✅"
+                        if order.get('delivery_status') == "رفض الاستلام": icon = "❌"
+                        
+                        with st.expander(f"{icon} {order['customer_name']} | مسار {order['route_name']} | {status}"):
+                            st.write(f"👤 **المندوب:** {order.get('delegate_name')} | 📝 **الاسم:** {order.get('full_name')}")
+                            st.write(f"🔢 **رقم البراد:** {order.get('cooler_serial') or '---'}")
+                            
+                            if order.get('manager_notes'): st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
+                            if order.get('driver_notes'): st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
+                            
+                            # أزرار الإدارة (مدير، مخزن، منسق، سائق) تظهر هنا أيضاً حسب الصلاحية
+                            if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
+                                m_notes = st.text_input("ملاحظات:", key=f"mn_{order['id']}")
+                                c1, c2 = st.columns(2)
+                                if c1.button("✅ موافقة", key=f"ap_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن", "manager_notes": m_notes}).eq("id", order['id']).execute()
+                                    st.rerun()
+                                if c2.button("❌ رفض", key=f"re_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": m_notes}).eq("id", order['id']).execute()
+                                    st.rerun()
 
-                # --- صلاحيات مسؤول المخزن ---
-                if user_role == "مسؤول المخزن" and "الموافقة" in status:
-                    serial = st.text_input("رقم البراد:", key=f"ser_{order['id']}")
-                    if st.button("حفظ الرقم", key=f"bs_{order['id']}"):
-                        supabase.table("cooler_orders").update({"cooler_serial": serial, "status": "تم التجهيز - بانتظار العقد"}).eq("id", order['id']).execute()
-                        st.rerun()
+                            # باقي الصلاحيات (مخزن، تنسيق، سائق) تضاف هنا بنفس الطريقة السابقة
+                            if user_role == "مسؤول المخزن" and "الموافقة" in status:
+                                serial = st.text_input("رقم البراد:", key=f"sr_{order['id']}")
+                                if st.button("حفظ", key=f"b_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"cooler_serial": serial, "status": "تم التجهيز - بانتظار العقد"}).eq("id", order['id']).execute()
+                                    st.rerun()
 
-                # --- صلاحيات المنسق ---
-                if user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in status:
-                    if st.button("📝 تم إنشاء العقد", key=f"con_{order['id']}"):
-                        supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
-                        st.rerun()
+                            if user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in status:
+                                if st.button("📝 تم إنشاء العقد", key=f"cn_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
+                                    st.rerun()
 
-                # --- صلاحيات السائق ---
-                if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
-                    d1, d2 = st.columns(2)
-                    if d1.button("✅ تم التوصيل", key=f"ok_{order['id']}"):
-                        supabase.table("cooler_orders").update({"delivery_status": "تم التوصيل بنجاح", "status": "مكتمل"}).eq("id", order['id']).execute()
-                        st.rerun()
-                    
-                    reason = st.text_input("سبب رفض العميل:", key=f"re_{order['id']}")
-                    if d2.button("❌ رفض الاستلام", key=f"fail_{order['id']}"):
-                        supabase.table("cooler_orders").update({"delivery_status": "رفض الاستلام", "driver_notes": reason, "status": "ملغي/مرفوض"}).eq("id", order['id']).execute()
-                        st.rerun()
+                            if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
+                                if st.button("✅ تم التوصيل", key=f"ok_{order['id']}"):
+                                    supabase.table("cooler_orders").update({"delivery_status": "تم التوصيل بنجاح", "status": "مكتمل"}).eq("id", order['id']).execute()
+                                    st.rerun()
+    else:
+        st.write("لا توجد بيانات حالياً.")
