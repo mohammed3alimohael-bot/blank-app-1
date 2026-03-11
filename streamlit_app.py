@@ -4,45 +4,46 @@ from supabase import create_client
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
-# --- كود تنظيف الواجهة الشامل (نسخة الإخفاء القصوى) ---
+# --- كود الإخفاء القسري الشامل (Forced Hide) ---
 st.markdown("""
     <style>
-    /* 1. إخفاء القائمة العلوية وأزرار التطوير بالكامل */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
+    /* إخفاء شريط التنقل العلوي بالكامل */
+    [data-testid="stHeader"] {display: none !important;}
     
-    /* 2. إخفاء شريط الـ Deploy والتاج الأحمر (Hosted with Streamlit) */
+    /* إخفاء القائمة الجانبية (الأزرار العلوية) */
+    #MainMenu {visibility: hidden !important;}
+    .stActionButton {display: none !important;}
+    
+    /* إخفاء شعار Hosted with Streamlit والتاج الأحمر نهائياً */
     .stDeployButton {display:none !important;}
-    .stAppDeployButton {display:none !important;}
     footer {display:none !important;}
+    [data-testid="stStatusWidget"] {display:none !important;}
     
-    /* 3. إخفاء العلامة المائية في أسفل يمين الصفحة (مهم جداً للصور التي أرسلتها) */
-    div[data-testid="stStatusWidget"] {display:none !important;}
-    .viewerBadge_container__177v5 {display:none !important;}
-    .viewerBadge_link__177v5 {display:none !important;}
-    #viewerBadge {display:none !important;}
+    /* استهداف شعار الموبايل العنيد */
+    img[src*="streamlit_logo"] {display: none !important;}
+    div[class^="viewerBadge"] {display: none !important;}
     
-    /* 4. تنسيق توقيعك الشخصي بالإنكليزية ليكون واضحاً وثابتاً */
-    .footer-text {
+    /* تنسيق توقيعك الشخصي بالإنكليزية ليكون هو الوحيد الظاهر */
+    .custom-footer {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        font-size: 14px;
-        color: #FFFFFF;
-        font-family: 'Arial', sans-serif;
+        bottom: 10px;
+        right: 10px;
+        background-color: #111;
+        color: #fff;
+        padding: 5px 12px;
+        font-size: 12px;
+        border-radius: 5px;
+        border: 1px solid #333;
         z-index: 999999;
-        background-color: rgba(0, 0, 0, 0.8);
-        padding: 8px 15px;
-        border-radius: 10px;
-        border: 1px solid #555;
-        font-weight: bold;
+        font-family: sans-serif;
     }
     </style>
-    <div class="footer-text">Designed and Programmed by Coordination Manager: Mohammed Ali Muheel</div>
+    <div class="custom-footer">
+        Designed and Programmed by Coordination Manager: Mohammed Ali Muheel
+    </div>
 """, unsafe_allow_html=True)
 
-# الربط بقاعدة البيانات (ملاحظة: تأكد من صحة الـ Key دائماً)
+# الربط بقاعدة البيانات
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 supabase = create_client(url, key)
