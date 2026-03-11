@@ -4,7 +4,7 @@ from supabase import create_client
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
 
-# --- كود تنظيف الواجهة وإضافة التوقيع ---
+# --- كود تنظيف الواجهة وإضافة التوقيع بالإنكليزية ---
 st.markdown("""
     <style>
     /* إخفاء أزرار المشاركة و GitHub في الأعلى */
@@ -12,18 +12,21 @@ st.markdown("""
     .stAppDeployButton {display:none !important;}
     [data-testid="stStatusWidget"] {display:none !important;}
     
-    /* تنسيق التوقيع في أسفل الصفحة */
+    /* تنسيق التوقيع في أسفل الصفحة بالإنكليزية */
     .footer-text {
         position: fixed;
         bottom: 10px;
-        left: 20px;
+        right: 20px;
         font-size: 14px;
-        color: #888;
+        color: #FFFFFF; /* لون أبيض واضح */
         font-family: 'Arial';
-        direction: rtl;
+        z-index: 999;
+        background-color: rgba(0,0,0,0.5); /* خلفية بسيطة لضمان الوضوح */
+        padding: 5px 10px;
+        border-radius: 5px;
     }
     </style>
-    <div class="footer-text">تم التصميم والبرمجة من قبل مسؤول التنسيق محمد علي محيل</div>
+    <div class="footer-text">Designed and Programmed by Coordination Manager: Mohammed Ali Muheel</div>
 """, unsafe_allow_html=True)
 
 # الربط بقاعدة البيانات
