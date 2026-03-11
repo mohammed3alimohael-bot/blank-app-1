@@ -1,5 +1,8 @@
 import streamlit as st
 from supabase import create_client
+import pandas as pd
+from datetime import datetime
+import io
 
 # إعدادات الصفحة
 st.set_page_config(page_title="منظومة بيبسي - واجهة السائق المحدثة", layout="wide")
@@ -35,35 +38,23 @@ if user_password == user_credentials[user_identity]:
         user_role = user_identity
         user_name = user_identity
 
-# --- قسم التنبيهات العامة المحدث ---
+    # --- 🔔 قسم التنبيهات الحية (في الشريط الجانبي) ---
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔔 تنبيهات النظام الحية")
-    
     try:
-        # قمنا بتغيير الترتيب ليعتمد على created_at بدلاً من updated_at لضمان ظهور البيانات
         updates_res = supabase.table("cooler_orders").select("customer_name, status, created_at").order('created_at', desc=True).limit(5).execute()
-        
-        if updates_res.data and len(updates_res.data) > 0:
+        if updates_res.data:
             for up in updates_res.data:
                 with st.sidebar.container(border=True):
-                    # عرض الوقت بشكل أرتب
-                    time_str = up['created_at'].replace('T', ' ')[:16]
-                    st.caption(f"⏱️ {time_str}")
+                    time_fixed = up['created_at'].replace('T', ' ')[:16]
+                    st.caption(f"⏱️ {time_fixed}")
                     st.write(f"🏢 **{up['customer_name']}**")
-                    
-                    # تلوين الحالة لتمييزها
-                    current_status = up['status']
-                    if "بانتظار" in current_status:
-                        st.warning(f"📍 {current_status}")
-                    elif "تمت" in current_status or "مكتمل" in current_status:
-                        st.success(f"📍 {current_status}")
-                    else:
-                        st.info(f"📍 {current_status}")
+                    st.info(f"📍 {up['status']}")
         else:
-            st.sidebar.write("📭 لا توجد طلبات مسجلة حتى الآن.")
-    except Exception as e:
-        # عرض الخطأ الحقيقي للمبرمج (لك) حتى نعرف إذا كان هناك نقص بالأعمدة
-        st.sidebar.error(f"خطأ في جلب البيانات: {str(e)}")
+            st.sidebar.write("لا توجد نشاطات حالياً.")
+    except:
+        st.sidebar.write("بانتظار تحديث البيانات...")
+
     st.title(f"🥤 لوحة تحكم: {user_identity}")
     st.markdown("---")
 
@@ -102,7 +93,7 @@ if user_password == user_credentials[user_identity]:
                     st.success("تم الإرسال بنجاح")
                     st.rerun()
 
-    # --- واجهة العرض (Tabs) ---
+    # --- واجهة العرض وسجل الحركة ---
     with col2:
         st.header("📋 سجل حركة الطلبات")
         res = supabase.table("cooler_orders").select("*").order('created_at', desc=True).execute()
@@ -129,7 +120,7 @@ if user_password == user_credentials[user_identity]:
                             if order.get('manager_notes'): st.info(f"📋 **ملاحظة المدير:** {order['manager_notes']}")
                             if order.get('driver_notes'): st.warning(f"⚠️ **ملاحظة السائق:** {order['driver_notes']}")
 
-                            # --- مدير التنمية ---
+                            # --- صلاحيات مدير التنمية ---
                             if user_role == "مدير التنمية" and "بانتظار موافقة" in status:
                                 n = st.text_input("ملاحظات:", key=f"n_{order['id']}")
                                 c1, c2 = st.columns(2)
@@ -140,7 +131,7 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"status": "مرفوض من قبل المدير", "manager_notes": n}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- مسؤول المخزن ---
+                            # --- صلاحيات مسؤول المخزن ---
                             if user_role == "مسؤول المخزن" and "الموافقة" in status:
                                 ser = st.text_input("رقم البراد:", key=f"s_{order['id']}")
                                 c1, c2 = st.columns(2)
@@ -152,13 +143,13 @@ if user_password == user_credentials[user_identity]:
                                     supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن", "cooler_serial": "غير متوفر"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- قسم التنسيق (محمد علي) ---
+                            # --- صلاحيات قسم التنسيق (محمد علي) ---
                             if user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in status:
                                 if st.button("📝 تم إنشاء العقد", key=f"c_{order['id']}"):
                                     supabase.table("cooler_orders").update({"contract_status": "تم إنشاء العقد", "status": "جاهز للتوصيل"}).eq("id", order['id']).execute()
                                     st.rerun()
 
-                            # --- سائق البرادات ---
+                            # --- صلاحيات سائق البرادات ---
                             if user_role == "سائق البرادات" and "جاهز للتوصيل" in status:
                                 st.markdown("---")
                                 dr_note = st.text_input("ملاحظة السائق (سبب الرفض إن وجد):", key=f"drn_{order['id']}")
@@ -169,49 +160,37 @@ if user_password == user_credentials[user_identity]:
                                 if col_b.button("❌ رفض الاستلام", key=f"fail_{order['id']}"):
                                     supabase.table("cooler_orders").update({"delivery_status": "رفض الاستلام", "driver_notes": dr_note, "status": "ملغي/مرفوض"}).eq("id", order['id']).execute()
                                     st.rerun()
-        else:
-            st.write("لا توجد بيانات.")
-# --- إضافة ميزة تصدير الطلبات إلى Excel ---
-    st.markdown("---")
-    st.subheader("📥 تصدير بيانات اليوم")
-
-    if all_orders:
-        import pandas as pd
-        from datetime import datetime
-        import io
-
-        # تحويل البيانات إلى Pandas DataFrame لسهولة التعامل
-        df = pd.DataFrame(all_orders)
-
-        # تحويل عمود التاريخ ليكون بصيغة تاريخ فقط (بدون وقت) للمقارنة
-        df['created_date'] = pd.to_datetime(df['created_at']).dt.date
-        today = datetime.now().date()
-
-        # فلترة طلبات اليوم فقط
-        df_today = df[df['created_date'] == today]
-
-        if not df_today.empty:
-            # إنشاء ملف إكسل في الذاكرة
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                # حذف الأعمدة غير الضرورية قبل التصدير (مثل الروابط أو الآيدي)
-                columns_to_export = ['customer_name', 'full_name', 'route_name', 'delegate_name', 'address', 'cooler_type', 'status', 'cooler_serial', 'supervisor_name', 'created_at']
-                df_today[columns_to_export].to_excel(writer, index=False, sheet_name='طلبات اليوم')
             
-            # زر التحميل
-            st.download_button(
-                label="تحميل طلبات اليوم كـ Excel 📥",
-                data=buffer.getvalue(),
-                file_name=f"طلبات_البرادات_{today}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            # --- 📥 قسم تصدير إكسل لطلبات اليوم ---
+            st.markdown("---")
+            st.subheader("📥 تصدير البيانات")
+            df = pd.DataFrame(all_orders)
+            df['created_date'] = pd.to_datetime(df['created_at']).dt.date
+            today = datetime.now().date()
+            df_today = df[df['created_date'] == today]
+
+            if not df_today.empty:
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                    cols = ['customer_name', 'full_name', 'route_name', 'delegate_name', 'address', 'cooler_type', 'status', 'cooler_serial', 'supervisor_name']
+                    df_today[cols].to_excel(writer, index=False, sheet_name='طلبات اليوم')
+                
+                st.download_button(
+                    label="تحميل طلبات اليوم (Excel) 📥",
+                    data=buffer.getvalue(),
+                    file_name=f"Pepsi_Orders_{today}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.info("لا توجد طلبات مسجلة اليوم لتصديرها.")
+
         else:
-            st.warning("لا توجد طلبات مسجلة بتاريخ اليوم لتصديرها.")
-            
-    # --- تذييل الصفحة (Footer) ---
+            st.write("لا توجد بيانات حالياً.")
+
+    # --- Footer: تصميم وبرمجة محمد علي محيل ---
     st.markdown("---")
     st.markdown(
-        "<div style='text-align: center; color: #555; padding: 20px;'>"
+        "<div style='text-align: center; color: #888; font-size: 0.9em; padding: 10px;'>"
         "Designed and Programmed by Coordination Officer: <b>Mohammed Ali Muheel</b>"
         "</div>", 
         unsafe_allow_html=True
