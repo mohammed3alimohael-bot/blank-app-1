@@ -2,230 +2,210 @@ import streamlit as st
 from supabase import create_client
 import time
 
-# 1. إعدادات الموبايل والخط الكوفي مع إصلاح الألوان
+# 1. إعدادات الموبايل والتصميم (خلفية سوداء، نصوص بيضاء وزرقاء)
 st.set_page_config(page_title="منصة التنسيق الرقمية", layout="centered")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@700&display=swap');
     
-    /* إجبار النصوص على الظهور بوضوح عالي بغض النظر عن ثيم الموبايل */
+    /* خلفية التطبيق سوداء بالكامل */
     .stApp {
-        color: #111111 !important; /* نصوص غامقة واضحة */
+        background-color: #000000 !important;
+        color: #ffffff !important;
     }
     
+    /* العنوان العلوي بخط كوفي كبير */
     .main-title { 
         font-family: 'Reem Kufi', sans-serif; 
-        font-size: 28px; 
-        color: #0045ad !important; 
+        font-size: 35px; 
+        color: #007bff !important; 
         text-align: center; 
-        margin-top: -30px;
-        padding-bottom: 20px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        padding: 20px 0;
     }
 
-    /* تحسين شكل المدخلات في الموبايل */
+    /* تحسين وضوح العناصر في الوضع الداكن */
+    label, p, span, .stMarkdown {
+        color: #ffffff !important;
+    }
+
+    /* حقول الإدخال */
     input, textarea, [data-baseweb="select"] {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        border: 1px solid #0045ad !important;
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border: 1px solid #007bff !important;
     }
 
-    /* تحسين وضوح العناوين الجانبية */
-    h1, h2, h3, p, label {
-        color: #1a1a1a !important;
-        font-weight: bold !important;
-    }
-
-    /* جعل الأزرار بارزة جداً للمس باليد */
+    /* الأزرار المصممة للهاتف */
     .stButton button { 
-        background-color: #0045ad !important; 
+        background-color: #007bff !important; 
         color: #ffffff !important; 
         border-radius: 12px; 
-        height: 50px; 
+        height: 55px; 
         font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        width: 100%;
     }
     
+    /* صناديق الإشعارات والإعلانات */
     .announcement-box { 
-        background-color: #fff3cd !important; 
-        color: #856404 !important; 
+        background-color: #332b00 !important; 
+        color: #ffd700 !important; 
         padding: 12px; 
         border-radius: 10px; 
-        border-right: 6px solid #ffc107 !important; 
+        border-right: 6px solid #ffd700 !important; 
         margin-bottom: 15px;
+        text-align: right;
+    }
+
+    .notification-item { 
+        background-color: #1a1a1a; 
+        padding: 10px; 
+        border-radius: 8px; 
+        margin-bottom: 8px; 
+        border-right: 4px solid #007bff;
+        color: #ffffff;
+    }
+
+    /* توقيع محمد علي باللون الأبيض في الأسفل */
+    .footer-signature {
+        color: #ffffff !important;
+        text-align: center;
+        font-size: 12px;
+        padding: 30px 0;
+        letter-spacing: 1px;
     }
     
-    /* إخفاء القوائم غير الضرورية */
-    header, footer { visibility: hidden; }
-    </style>
-    <div class="main-title">منصة التنسيق الرقمية</div>
-    """, unsafe_allow_html=True)
-    }
-    .notification-item { 
-        background-color: #f1f3f5; padding: 8px; border-radius: 5px; 
-        margin-bottom: 5px; border-right: 3px solid #0045ad; font-size: 12px;
-    }
-    .stButton button { width: 100%; border-radius: 10px; height: 45px; font-weight: bold; }
     header, footer { visibility: hidden; }
     </style>
     <div class="main-title">منصة التنسيق الرقمية</div>
     """, unsafe_allow_html=True)
 
-# 2. الربط بقاعدة البيانات
+# 2. الربط بـ Supabase
 url = "https://xvixqbcqunrvbvqvlplz.supabase.co"
 key = "sb_publishable_PSotHRdrxbHMZPpAuBcp4Q_Pxq0H02p"
 supabase = create_client(url, key)
 
-# 3. نظام الصوت (تنبيه عند التحديث)
-def play_sound():
+# دالة لتشغيل صوت التنبيه
+def play_notif_sound():
     st.components.v1.html('<audio autoplay><source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg"></audio>', height=0)
 
-# 4. تسجيل الدخول
+# 3. نظام الدخول
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     with st.container(border=True):
-        st.subheader("🔐 دخول المستخدمين")
-        user_creds = {
-            "مشعل رسول": "1001", "محمد أركن": "1002", "حسين علي": "1003",
-            "مدير التنمية": "2001", "مسؤول المخزن": "3001",
-            "قسم التنسيق (محمد علي)": "4001", "سائق البرادات": "5001"
-        }
-        u_identity = st.selectbox("اختر اسمك:", list(user_creds.keys()))
-        u_pass = st.text_input("الرمز السري:", type="password")
+        st.subheader("🔐 تسجيل الدخول")
+        creds = {"مشعل رسول": "1001", "محمد أركن": "1002", "حسين علي": "1003", "مدير التنمية": "2001", "مسؤول المخزن": "3001", "قسم التنسيق (محمد علي)": "4001", "سائق البرادات": "5001"}
+        u_id = st.selectbox("اختر الاسم:", list(creds.keys()))
+        u_p = st.text_input("الرمز السري:", type="password")
         if st.button("دخول ✅"):
-            if u_pass == user_creds[u_identity]:
-                st.session_state.logged_in = True
-                st.session_state.user_name = u_identity
+            if u_p == creds[u_id]:
+                st.session_state.logged_in, st.session_state.user_name = True, u_id
                 st.rerun()
-            else: st.error("الرمز السري خطأ!")
     st.stop()
 
 u_name = st.session_state.user_name
-user_role = "مشرف" if u_name in ["مشعل رسول", "محمد أركن", "حسين علي"] else u_name
 
-# --- 📣 نظام الإعلانات ---
+# --- 📣 نظام الإعلانات والإشعارات (آخر 10) ---
 try:
     ann = supabase.table("announcements").select("*").order('created_at', desc=True).limit(1).execute().data
-    if ann:
-        st.markdown(f'<div class="announcement-box">📢 {ann[0]["content"]}</div>', unsafe_allow_html=True)
+    if ann: st.markdown(f'<div class="announcement-box">📢 {ann[0]["content"]}</div>', unsafe_allow_html=True)
 except: pass
 
-# --- 🔔 آخر 10 إشعارات ---
-with st.expander("🔔 الإشعارات الأخيرة (آخر 10)", expanded=True):
+with st.expander("🔔 آخر 10 إشعارات بالتفصيل", expanded=True):
     try:
         logs = supabase.table("cooler_orders").select("*").order('updated_at', desc=True).limit(10).execute().data
-        for log in logs:
-            txt = f"**{log['customer_name']}**: {log['status']}"
-            if log.get('manager_notes'): txt += f" | ❌ الرفض: {log['manager_notes']}"
-            st.markdown(f'<div class="notification-item">{txt}</div>', unsafe_allow_html=True)
+        for l in logs:
+            info = f"📦 {l['customer_name']} -> {l['status']}"
+            if l.get('manager_notes'): info += f" | سبب الرفض: {l['manager_notes']}"
+            st.markdown(f'<div class="notification-item">{info}</div>', unsafe_allow_html=True)
     except: st.write("لا توجد حركات.")
 
-# --- واجهة المشرف (إضافة دفعة واحدة) ---
-if user_role == "مشرف":
-    st.subheader("➕ تقديم طلبات")
+# --- واجهة المشرف (إرسال دفعة واحدة) ---
+if u_name in ["مشعل رسول", "محمد أركن", "حسين علي"]:
     if 'basket' not in st.session_state: st.session_state.basket = []
-    
     with st.container(border=True):
-        route = st.radio("📍 اختر المسار:", ["1", "2", "3", "4", "5", "6"], horizontal=True)
+        st.subheader("➕ تقديم طلبات")
+        route = st.radio("📍 المسار:", ["1", "2", "3", "4", "5", "6"], horizontal=True)
         delegate = st.text_input("👤 اسم المندوب")
         trade_n = st.text_input("🏢 الاسم التجاري")
         full_n = st.text_input("📝 الاسم الثلاثي")
         addr = st.text_input("🗺️ العنوان")
+        details = st.text_area("ℹ️ التفاصيل")
         item = st.selectbox("📦 نوع المادة:", ["سنكل بيبسي", "سنكل يومي", "سنكل اكوافينا", "سلم", "دبل بيبسي", "ثلاثي بيبسي", "ستاند 90", "ستاند 110", "ستاند 120", "ستاند 75", "ستاند 50", "مضلة صغيرة", "مضلة كبيرة", "طاولات", "كراسي"])
-        details = st.text_area("ℹ️ تفاصيل إضافية")
         
-        if st.button("إضافة الطلب للسلة 📥"):
-            if trade_n:
-                st.session_state.basket.append({
-                    "route_name": route, "delegate_name": delegate, "customer_name": trade_n,
-                    "full_name": full_n, "address": addr, "details": details, "cooler_type": item
-                })
-                st.success("تمت الإضافة للسلة")
-                st.rerun()
+        if st.button("إضافة للسلة 📥"):
+            st.session_state.basket.append({"route_name": route, "delegate_name": delegate, "customer_name": trade_n, "full_name": full_n, "address": addr, "details": details, "cooler_type": item})
+            st.rerun()
 
     if st.session_state.basket:
-        st.info(f"🛒 لديك ({len(st.session_state.basket)}) طلبات جاهزة")
-        if st.button("🚀 إرسال الطلبات للمدير الآن", type="primary"):
+        st.info(f"🛒 لديك ({len(st.session_state.basket)}) طلبات")
+        if st.button("🚀 إرسال الكل للمدير"):
             for r in st.session_state.basket:
                 supabase.table("cooler_orders").insert({**r, "supervisor_name": u_name, "status": "بانتظار موافقة المدير"}).execute()
             st.session_state.basket = []
-            play_sound()
-            st.success("تم الإرسال بنجاح!")
-            st.rerun()
+            play_notif_sound(); st.rerun()
 
-# --- واجهة المتابعة واتخاذ القرار ---
+# --- سلسلة الموافقات (عرض التفاصيل الكاملة) ---
 st.subheader("📋 متابعة الطلبات")
 orders = supabase.table("cooler_orders").select("*").order('created_at', desc=True).execute().data
-
 if orders:
     for o in orders:
         with st.expander(f"📦 {o['customer_name']} | {o['status']}"):
-            st.write(f"**المندوب:** {o['delegate_name']} | **المسار:** {o['route_name']}")
-            st.write(f"**الاسم الثلاثي:** {o['full_name']}")
-            st.write(f"**العنوان:** {o['address']} | **المادة:** {o['cooler_type']}")
-            st.write(f"**التفاصيل:** {o['details']}")
+            st.write(f"المندوب: {o['delegate_name']} | المسار: {o['route_name']}")
+            st.write(f"الاسم: {o['full_name']} | النوع: {o['cooler_type']}")
+            st.write(f"العنوان: {o['address']} | التفاصيل: {o['details']}")
             
-            if o.get('manager_notes'): st.error(f"❌ ملاحظة الرفض: {o['manager_notes']}")
-            if o.get('cooler_serial'): st.success(f"🔢 رقم البراد: {o['cooler_serial']}")
+            # منطق التنقل بين المستخدمين
+            if u_name == "مدير التنمية" and o['status'] == "بانتظار موافقة المدير":
+                reason = st.text_input("سبب الرفض:", key=f"m_{o['id']}")
+                if st.button("✅ موافقة", key=f"ma_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن"}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
+                if st.button("❌ رفض", key=f"mr_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "مرفوض من المدير", "manager_notes": reason}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
 
-            # سلسلة العمليات
-            if user_role == "مدير التنمية" and o['status'] == "بانتظار موافقة المدير":
-                note = st.text_input("سبب الرفض (إن وجد):", key=f"mn_{o['id']}")
-                c1, c2 = st.columns(2)
-                if c1.button("✅ موافقة", key=f"ma_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "تمت الموافقة - بانتظار المخزن", "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
-                if c2.button("❌ رفض", key=f"mr_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "مرفوض من المدير", "manager_notes": note, "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
+            elif u_name == "مسؤول المخزن" and "الموافقة" in o['status']:
+                ser = st.text_input("رقم البراد:", key=f"s_{o['id']}")
+                r_note = st.text_input("سبب عدم التوفر:", key=f"rn_{o['id']}")
+                if st.button("✅ تجهيز", key=f"sa_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "تم التجهيز - بانتظار العقد", "cooler_serial": ser}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
+                if st.button("❌ غير متوفر", key=f"sr_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن", "manager_notes": r_note}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
 
-            elif user_role == "مسؤول المخزن" and "الموافقة" in o['status']:
-                ser = st.text_input("رقم البراد:", key=f"ser_{o['id']}")
-                wnote = st.text_input("سبب الرفض:", key=f"wn_{o['id']}")
-                c1, c2 = st.columns(2)
-                if c1.button("✅ تجهيز", key=f"wa_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "تم التجهيز - بانتظار العقد", "cooler_serial": ser, "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
-                if c2.button("❌ غير متوفر", key=f"wr_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "غير متوفر بالمخزن", "manager_notes": wnote, "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
+            elif u_name == "قسم التنسيق (محمد علي)" and "التجهيز" in o['status']:
+                if st.button("📝 تم إكمال العقد", key=f"ca_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "جاهز للتوصيل"}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
 
-            elif user_role == "قسم التنسيق (محمد علي)" and "التجهيز" in o['status']:
-                if st.button("📝 تم إكمال العقد", key=f"cc_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "جاهز للتوصيل", "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
-
-            elif user_role == "سائق البرادات" and o['status'] == "جاهز للتوصيل":
+            elif u_name == "سائق البرادات" and o['status'] == "جاهز للتوصيل":
                 d_note = st.text_input("ملاحظة السائق:", key=f"dn_{o['id']}")
-                c1, c2 = st.columns(2)
-                if c1.button("✅ تم التسليم", key=f"dok_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "مكتمل", "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
-                if c2.button("❌ رفض استلام", key=f"dfail_{o['id']}"):
-                    supabase.table("cooler_orders").update({"status": "رفض استلام", "driver_notes": d_note, "updated_at": "now()"}).eq("id", o['id']).execute()
-                    play_sound(); st.rerun()
+                if st.button("✅ تم التسليم", key=f"da_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "مكتمل"}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
+                if st.button("❌ رفض الاستلام", key=f"dr_{o['id']}"):
+                    supabase.table("cooler_orders").update({"status": "رفض استلام", "driver_notes": d_note}).eq("id", o['id']).execute()
+                    play_notif_sound(); st.rerun()
 
-    # --- 📑 تصدير البيانات بنظام القوائم ---
-    with st.expander("📑 تصدير البيانات للنسخ"):
-        def get_list(key): return "\n".join([str(x.get(key, '-')) for x in orders])
-        out = f"🏢 الاسم التجاري:\n{get_list('customer_name')}\n\n📝 الاسم الثلاثي:\n{get_list('full_name')}\n\n👤 المندوب:\n{get_list('delegate_name')}\n\n📍 المسار:\n{get_list('route_name')}\n\n🎖️ المشرف:\n{get_list('supervisor_name')}\n\n📦 النوع:\n{get_list('cooler_type')}\n\n🗺️ العنوان:\n{get_list('address')}"
-        st.text_area("انسخ من هنا:", out, height=200)
+    # --- تصدير البيانات بنسخ مباشر ---
+    with st.expander("📑 تصدير البيانات للنسخ العمودي"):
+        def get_col(k): return "\n".join([str(x.get(k, '-')) for x in orders])
+        export_text = f"🏢 الاسم التجاري:\n{get_col('customer_name')}\n\n📝 الاسم الثلاثي:\n{get_col('full_name')}\n\n👤 المندوب:\n{get_col('delegate_name')}\n\n📍 المسار:\n{get_col('route_name')}\n\n📦 النوع:\n{get_col('cooler_type')}"
+        st.text_area("انسخ القوائم من هنا:", export_text, height=250)
 
-# --- 🛠️ أدوات محمد علي ---
+# --- أدوات محمد علي (تصفير + تعميم) ---
 if u_name == "قسم التنسيق (محمد علي)":
     st.divider()
-    with st.container(border=True):
-        st.write("🛠️ **لوحة التحكم الإدارية**")
-        ann_msg = st.text_area("إرسال إعلان عام للجميع:")
-        if st.button("نشر الإعلان 📡"):
-            supabase.table("announcements").insert({"content": ann_msg, "sender": u_name}).execute()
+    with st.expander("🛠️ إدارة المنصة"):
+        new_ann = st.text_area("نشر إعلان عام:")
+        if st.button("بث الإعلان 📡"):
+            supabase.table("announcements").insert({"content": new_ann, "sender": u_name}).execute()
             st.success("تم النشر!"); st.rerun()
-        
         if st.button("⚠️ تصفير كافة الطلبات"):
             supabase.table("cooler_orders").delete().neq("id", 0).execute()
-            st.success("تم تصفير البيانات!"); st.rerun()
+            st.success("تم التصفير!"); st.rerun()
 
-st.divider()
-st.markdown("<center style='color: #888; font-size: 11px;'>Designed and Programmed by:<br><b>MOHAMMED ALI MUHEEL</b></center>", unsafe_allow_html=True)
+st.markdown('<div class="footer-signature">Designed and Programmed by:<br><b>MOHAMMED ALI MUHEEL</b></div>', unsafe_allow_html=True)
