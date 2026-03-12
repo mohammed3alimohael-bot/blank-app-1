@@ -2,20 +2,65 @@ import streamlit as st
 from supabase import create_client
 import time
 
-# 1. إعدادات الصفحة والستايل (مصمم للهاتف)
+# 1. إعدادات الموبايل والخط الكوفي مع إصلاح الألوان
 st.set_page_config(page_title="منصة التنسيق الرقمية", layout="centered")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@700&display=swap');
-    .stApp { background-color: #ffffff; }
-    .main-title { 
-        font-family: 'Reem Kufi', sans-serif; font-size: 28px; 
-        color: #0045ad; text-align: center; margin-top: -30px; 
+    
+    /* إجبار النصوص على الظهور بوضوح عالي بغض النظر عن ثيم الموبايل */
+    .stApp {
+        color: #111111 !important; /* نصوص غامقة واضحة */
     }
+    
+    .main-title { 
+        font-family: 'Reem Kufi', sans-serif; 
+        font-size: 28px; 
+        color: #0045ad !important; 
+        text-align: center; 
+        margin-top: -30px;
+        padding-bottom: 20px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* تحسين شكل المدخلات في الموبايل */
+    input, textarea, [data-baseweb="select"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #0045ad !important;
+    }
+
+    /* تحسين وضوح العناوين الجانبية */
+    h1, h2, h3, p, label {
+        color: #1a1a1a !important;
+        font-weight: bold !important;
+    }
+
+    /* جعل الأزرار بارزة جداً للمس باليد */
+    .stButton button { 
+        background-color: #0045ad !important; 
+        color: #ffffff !important; 
+        border-radius: 12px; 
+        height: 50px; 
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
     .announcement-box { 
-        background-color: #fff3cd; padding: 10px; border-radius: 8px; 
-        border-right: 5px solid #ffc107; margin-bottom: 10px; font-weight: bold;
+        background-color: #fff3cd !important; 
+        color: #856404 !important; 
+        padding: 12px; 
+        border-radius: 10px; 
+        border-right: 6px solid #ffc107 !important; 
+        margin-bottom: 15px;
+    }
+    
+    /* إخفاء القوائم غير الضرورية */
+    header, footer { visibility: hidden; }
+    </style>
+    <div class="main-title">منصة التنسيق الرقمية</div>
+    """, unsafe_allow_html=True)
     }
     .notification-item { 
         background-color: #f1f3f5; padding: 8px; border-radius: 5px; 
